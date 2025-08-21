@@ -7,5 +7,5 @@ just a binder and github codespace environment serves as a gist but with CI and 
 
 # binder
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kisslim/handy-snippets-in-jupyter-notebook/master?filepath=README.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kisslim/handy-snippets-in-jupyter-notebook/main?filepath=README.ipynb)
 
