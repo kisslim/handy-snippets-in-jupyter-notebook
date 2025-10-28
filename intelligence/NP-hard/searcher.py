@@ -4,7 +4,7 @@ I want python types for progressive NP-hard problem searcher/solver.
 the base abstract class provides utilities and remains a core function for subclass to implement: 
     search_stream(problem: `Problem`) which is a generator yields either `Progress` or `Solution`. 
     we require that `Solution` is always comparable (i.e., supports <, <=, >, >=).
-    the generator should always yield verifiable and better solution than before.
+    the generator should always yield verifiable and better (>=) solution than before.
     
 the data format is:
 
