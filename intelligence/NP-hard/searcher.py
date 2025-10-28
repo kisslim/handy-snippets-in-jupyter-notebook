@@ -18,185 +18,83 @@ class Problem a where
     verify :: a -> Solution a -> Bool
 
 """
-
-from typing import TypeVar, Generic, Optional, Iterator, Union
 from abc import ABC, abstractmethod
+from typing import TypeVar, Generic, Iterator, Union, Optional
+from typing_extensions import Protocol
 
-# Type variables for the problem domain
+# Type variables for the Problem type and its associated types
 P = TypeVar('P', bound='Problem')  # Problem type
-Progress = TypeVar('Progress')      # Progress type
-Solution = TypeVar('Solution')      # Solution type
+S = TypeVar('S', bound='Comparable')  # Solution type - must be comparable
 
+# Protocol for comparable types (equivalent to Haskell's Ord)
+class Comparable(Protocol):
+    def __lt__(self, other: 'Comparable') -> bool: ...
+    def __le__(self, other: 'Comparable') -> bool: ...
+    def __gt__(self, other: 'Comparable') -> bool: ...
+    def __ge__(self, other: 'Comparable') -> bool: ...
 
-class Problem(ABC, Generic[P, Progress, Solution]):
-    """Abstract base class representing an NP-hard problem."""
+class Progress(ABC):
+    """Base class for progress updates"""
+    pass
+
+class Problem(ABC, Generic[P, S]):
+    """
+    Abstract base class for NP-hard problems.
+    
+    Type Parameters:
+        P: The specific Problem type (self-referential)
+        S: The Solution type (must be Comparable)
+    """
     
     @abstractmethod
     def describe(self) -> str:
-        """Return a description of the problem."""
+        """Return a description of the problem instance."""
         pass
     
     @abstractmethod
     def merge_progress(self: P, progress: Progress) -> P:
         """
-        Merge progress information into the current problem state.
+        Merge progress information into the problem state.
         
-        Args:
-            progress: Progress information to merge
-            
-        Returns:
-            Updated problem instance
+        Returns a new problem instance with the merged progress.
         """
         pass
     
     @abstractmethod
-    def get_current_solution(self) -> Optional[Solution]:
-        """
-        Get the current best solution found so far.
-        
-        Returns:
-            Current best solution or None if no solution found yet
-        """
+    def get_current_solution(self) -> Optional[S]:
+        """Get the current best solution, if any."""
         pass
     
     @abstractmethod
-    def verify(self, solution: Solution) -> bool:
-        """
-        Verify if a solution is valid for this problem.
-        
-        Args:
-            solution: Solution to verify
-            
-        Returns:
-            True if the solution is valid
-        """
+    def verify(self, solution: S) -> bool:
+        """Verify that a solution is valid for this problem."""
         pass
 
-
-class Solver(ABC, Generic[P, Progress, Solution]):
-    """Abstract base class for progressive problem solvers."""
-    
-    @abstractmethod
-    def search_stream(self, problem: P) -> Iterator[Union[Progress, Solution]]:
-        """
-        Generator that yields either progress updates or solutions.
-        
-        Args:
-            problem: The problem to solve
-            
-        Yields:
-            Either Progress updates or Solution objects
-        """
-        pass
-    
-    # Utility methods that subclasses can use
-    def log_progress(self, progress: Progress) -> None:
-        """Utility method to log progress updates."""
-        print(f"Progress: {progress}")
-    
-    def log_solution(self, solution: Solution) -> None:
-        """Utility method to log solutions."""
-        print(f"Solution found: {solution}")
-
-
-# Example concrete implementation types
-class ExampleProgress:
-    """Example progress type for demonstration."""
-    def __init__(self, nodes_explored: int, best_bound: float):
-        self.nodes_explored = nodes_explored
-        self.best_bound = best_bound
-    
-    def __str__(self) -> str:
-        return f"Nodes: {self.nodes_explored}, Bound: {self.best_bound}"
-
-
-class ExampleSolution:
-    """Example solution type for demonstration."""
-    def __init__(self, value: int, assignment: list[int]):
-        self.value = value
-        self.assignment = assignment
-    
-    def __str__(self) -> str:
-        return f"Value: {self.value}, Assignment: {self.assignment}"
-
-
-class ExampleProblem(Problem['ExampleProblem', ExampleProgress, ExampleSolution]):
-    """Example concrete problem implementation."""
-    
-    def __init__(self, data: list[int], current_progress: Optional[ExampleProgress] = None):
-        self.data = data
-        self.current_progress = current_progress
-        self.best_solution: Optional[ExampleSolution] = None
-    
-    def describe(self) -> str:
-        return f"Example problem with data: {self.data}"
-    
-    def merge_progress(self, progress: ExampleProgress) -> 'ExampleProblem':
-        # Create a new instance with merged progress
-        return ExampleProblem(self.data, progress)
-    
-    def get_current_solution(self) -> Optional[ExampleSolution]:
-        return self.best_solution
-    
-    def verify(self, solution: ExampleSolution) -> bool:
-        # Simple verification logic
-        return (solution.value is not None and 
-                len(solution.assignment) == len(self.data))
-
-
-class ExampleSolver(Solver[ExampleProblem, ExampleProgress, ExampleSolution]):
-    """Example concrete solver implementation."""
-    
-    def search_stream(self, problem: ExampleProblem) -> Iterator[Union[ExampleProgress, ExampleSolution]]:
-        # Example implementation that yields progress and solutions
-        yield ExampleProgress(0, 0.0)
-        
-        # Simulate some computation
-        for i in range(1, 10):
-            yield ExampleProgress(i * 100, i * 0.1)
-            
-            # Occasionally yield a solution
-            if i % 3 == 0:
-                solution = ExampleSolution(i, list(range(len(problem.data))))
-                yield solution
-        
-        # Final solution
-        final_solution = ExampleSolution(42, [1, 2, 3])
-        yield final_solution
-
-
-# Usage example
-def solve_problem(problem: Problem[P, Progress, Solution], 
-                 solver: Solver[P, Progress, Solution]) -> Optional[Solution]:
+class Solver(ABC, Generic[P, S]):
     """
-    Solve a problem using a solver and return the best solution.
+    Abstract base class for progressive NP-hard problem solvers.
     
-    Args:
-        problem: The problem to solve
-        solver: The solver to use
-        
-    Returns:
-        Best solution found, or None if no solution found
+    Type Parameters:
+        P: The Problem type this solver works with
+        S: The Solution type (must be Comparable)
     """
-    best_solution: Optional[Solution] = None
     
-    for result in solver.search_stream(problem):
-        if isinstance(result, Problem):  # type: ignore
-            # This would be progress in your actual implementation
-            progress: Progress = result  # type: ignore
-            print(f"Progress update: {progress}")
-        else:
-            # This is a solution
-            solution: Solution = result  # type: ignore
-            print(f"Found solution: {solution}")
-            if best_solution is None or self._is_better(solution, best_solution):  # type: ignore
-                best_solution = solution
+    @abstractmethod
+    def search_stream(self, problem: P) -> Iterator[Union[Progress, S]]:
+        """
+        Generator that yields either Progress updates or Solutions.
+        
+        Solutions must be comparable and each yielded solution should be
+        better than or equal to the previous one (>=).
+        Solutions should always be verifiable.
+        """
+        pass
     
-    return best_solution
-
-# For the comparison method, you'd need to add it to your Problem class
-def _is_better(self, new_solution: Solution, current_best: Solution) -> bool:
-    """Compare two solutions to determine which is better."""
-    # Implementation depends on whether it's a minimization or maximization problem
-    # This should be implemented in concrete problem classes
-    pass
+    # Utility methods can be added here for subclasses
+    def _verify_solution(self, problem: P, solution: S) -> bool:
+        """Utility method to verify a solution."""
+        return problem.verify(solution)
+    
+    def _get_problem_description(self, problem: P) -> str:
+        """Utility method to get problem description."""
+        return problem.describe()
